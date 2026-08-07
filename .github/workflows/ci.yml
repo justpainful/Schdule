@@ -80,16 +80,38 @@ jobs:
       - name: Generate project
         run: xcodegen generate
 
+      # A cold simulator makes the first app launch slow enough that XCUITest
+      # gives up with "Timed out while launching application via Xcode". Booting
+      # it up front and waiting for it to settle turns that flake into a
+      # predictable few seconds.
+      - name: Pre-boot simulator
+        run: |
+          UDID=$(xcrun simctl list devices available -j \
+            | python3 -c "import json,sys;d=json.load(sys.stdin)['devices'];print(next(x['udid'] for v in d.values() for x in v if x['name']=='$SIMULATOR'))")
+          echo "Booting $SIMULATOR ($UDID)"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+
       - name: Run screenshot tour
         run: |
           set -o pipefail
-          xcodebuild test \
-            -project Schdule.xcodeproj \
-            -scheme Schdule \
-            -destination "platform=iOS Simulator,name=$SIMULATOR" \
-            -only-testing:SchduleUITests/ScreenshotTour/${{ matrix.method }} \
-            -resultBundlePath Tour.xcresult \
-            CODE_SIGNING_ALLOWED=NO
+          run_tour() {
+            xcodebuild test \
+              -project Schdule.xcodeproj \
+              -scheme Schdule \
+              -destination "platform=iOS Simulator,name=$SIMULATOR" \
+              -only-testing:SchduleUITests/ScreenshotTour/${{ matrix.method }} \
+              -resultBundlePath "$1" \
+              CODE_SIGNING_ALLOWED=NO
+          }
+          # One retry. Launch timeouts on a hosted runner are environmental, not
+          # a signal about the code, and a red matrix leg costs a whole review
+          # round.
+          run_tour Tour.xcresult || {
+            echo "::warning::First tour attempt failed; retrying once."
+            rm -rf Tour.xcresult
+            run_tour Tour.xcresult
+          }
 
       - name: Extract screenshots from result bundle
         if: always()

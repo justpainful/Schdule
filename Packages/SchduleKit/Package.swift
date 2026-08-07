@@ -7,16 +7,33 @@ let package = Package(
     platforms: [.iOS(.v26)],
     products: [
         .library(name: "SchduleModel", targets: ["SchduleModel"]),
+        .library(name: "SchduleStats", targets: ["SchduleStats"]),
+        .library(name: "SchduleStore", targets: ["SchduleStore"]),
         .library(name: "SchduleDesign", targets: ["SchduleDesign"]),
     ],
     targets: [
+        // Value types and calendar arithmetic. No frameworks, no I/O.
         .target(
             name: "SchduleModel",
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
+        // Pure functions over day→count maps. Deliberately independent of the
+        // store so the fiddly parts can be tested without a container.
+        .target(
+            name: "SchduleStats",
+            dependencies: ["SchduleModel"],
+            swiftSettings: [.swiftLanguageMode(.v6)]
+        ),
+        // SwiftData models and every mutation. Local-only by construction.
+        .target(
+            name: "SchduleStore",
+            dependencies: ["SchduleModel"],
+            swiftSettings: [.swiftLanguageMode(.v6)]
+        ),
+        // Design tokens and the views shared by the app, widgets, and exports.
         .target(
             name: "SchduleDesign",
-            dependencies: ["SchduleModel"],
+            dependencies: ["SchduleModel", "SchduleStats"],
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
         // Tests deliberately live in the Xcode project (Tests/SchduleKitTests)

@@ -12,6 +12,11 @@ public struct DayCell: View {
     private let tint: BoardTint
     private let isToday: Bool
     private let isInverted: Bool
+    /// A day that has not arrived yet. Rendered as absence rather than as a
+    /// quiet box, because in the first screenshot round a *missed* day and a day
+    /// that simply had not happened yet were indistinguishable — which made a
+    /// month in progress look like a month full of failures.
+    private let isFuture: Bool
     private let showsDayNumber: Bool
 
     public init(
@@ -20,6 +25,7 @@ public struct DayCell: View {
         tint: BoardTint,
         isToday: Bool = false,
         isInverted: Bool = false,
+        isFuture: Bool = false,
         showsDayNumber: Bool = true
     ) {
         self.day = day
@@ -27,6 +33,7 @@ public struct DayCell: View {
         self.tint = tint
         self.isToday = isToday
         self.isInverted = isInverted
+        self.isFuture = isFuture
         self.showsDayNumber = showsDayNumber
     }
 
@@ -45,7 +52,7 @@ public struct DayCell: View {
             // happened to "today" in the first screenshot round.
             if isToday {
                 RoundedRectangle(cornerRadius: Metrics.cellCornerRadius + 3, style: .continuous)
-                    .strokeBorder(tint.color, lineWidth: 2)
+                    .strokeBorder(tint.color, lineWidth: 2.5)
                     .padding(-3)
             }
         }
@@ -54,9 +61,14 @@ public struct DayCell: View {
     }
 
     private var fillStyle: AnyShapeStyle {
-        intensity == .none
-            ? AnyShapeStyle(Color(.quaternarySystemFill))
-            : AnyShapeStyle(tint.color.opacity(intensity.fillOpacity))
+        if intensity != .none {
+            return AnyShapeStyle(tint.color.opacity(intensity.fillOpacity))
+        }
+        // Past and empty is a fact worth showing; future and empty is not yet a
+        // fact at all.
+        return isFuture
+            ? AnyShapeStyle(Color.clear)
+            : AnyShapeStyle(Color(.quaternarySystemFill))
     }
 
     @ViewBuilder
@@ -69,7 +81,7 @@ public struct DayCell: View {
                 Text(day, format: .number)
                     .font(.system(size: 13, weight: .regular, design: .rounded))
                     .monospacedDigit()
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(isFuture ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.tertiary))
             }
         case .once:
             Image(systemName: isInverted ? "xmark" : "checkmark")
@@ -90,7 +102,8 @@ public struct DayCell: View {
         let todayPart = isToday ? ", " + String(localized: "today") : ""
         switch intensity {
         case .none:
-            return dayPart + todayPart + ", " + String(localized: "not logged")
+            let state = isFuture ? String(localized: "upcoming") : String(localized: "not logged")
+            return dayPart + todayPart + ", " + state
         case .once:
             return dayPart + todayPart + ", " + String(localized: "logged once")
         case .twice, .many:
@@ -101,11 +114,12 @@ public struct DayCell: View {
 
 #Preview("Intensity ramp", traits: .sizeThatFitsLayout) {
     HStack(spacing: Metrics.cellSpacing) {
-        DayCell(day: 3, count: 0, tint: .indigo)
-        DayCell(day: 4, count: 1, tint: .indigo)
-        DayCell(day: 5, count: 2, tint: .indigo)
-        DayCell(day: 6, count: 4, tint: .indigo, isToday: true)
+        DayCell(day: 3, count: 0, tint: .orange)
+        DayCell(day: 4, count: 1, tint: .orange)
+        DayCell(day: 5, count: 2, tint: .orange)
+        DayCell(day: 6, count: 4, tint: .orange, isToday: true)
+        DayCell(day: 7, count: 0, tint: .orange, isFuture: true)
     }
-    .frame(width: 240)
+    .frame(width: 300)
     .padding()
 }

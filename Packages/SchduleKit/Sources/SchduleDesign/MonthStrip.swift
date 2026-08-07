@@ -19,17 +19,20 @@ public struct MonthStrip: View {
     }
 
     public var body: some View {
-        HStack(alignment: .top, spacing: 14) {
-            ForEach(months, id: \.self) { month in
-                VStack(spacing: 6) {
-                    weekColumns(for: month)
-                    Text(label(for: month))
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+        ScrollView(.horizontal) {
+            HStack(alignment: .top, spacing: 16) {
+                ForEach(months, id: \.self) { month in
+                    VStack(spacing: 6) {
+                        weekColumns(for: month)
+                        Text(label(for: month))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
-            Spacer(minLength: 0)
+            .padding(.vertical, 2)
         }
+        .scrollIndicators(.hidden)
     }
 
     private func weekColumns(for month: MonthKey) -> some View {
@@ -47,7 +50,7 @@ public struct MonthStrip: View {
                             let day = days[index]
                             RoundedRectangle(cornerRadius: 1.5, style: .continuous)
                                 .fill(color(for: counts[day] ?? 0))
-                                .frame(width: 6, height: 6)
+                                .frame(width: 5, height: 5)
                         } else {
                             Color.clear.frame(width: 6, height: 6)
                         }
@@ -67,7 +70,6 @@ public struct MonthStrip: View {
     }
 
     private func label(for month: MonthKey) -> String {
-        month.startDate(calendar: calendar)
-            .formatted(.dateTime.month(.abbreviated).locale(.autoupdatingCurrent))
+        CalendarFormatting.month(month.startDate(calendar: calendar), calendar: calendar)
     }
 }

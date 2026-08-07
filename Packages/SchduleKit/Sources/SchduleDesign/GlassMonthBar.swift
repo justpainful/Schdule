@@ -22,8 +22,7 @@ public struct GlassMonthBar: View {
     }
 
     private var title: String {
-        month.startDate(calendar: calendar)
-            .formatted(.dateTime.year().month(.wide).locale(.autoupdatingCurrent))
+        CalendarFormatting.monthAndYear(month.startDate(calendar: calendar), calendar: calendar)
     }
 
     public var body: some View {

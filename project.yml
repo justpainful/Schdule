@@ -31,6 +31,10 @@ targets:
     dependencies:
       - package: SchduleKit
         product: SchduleDesign
+      - package: SchduleKit
+        product: SchduleStore
+      - package: SchduleKit
+        product: SchduleStats
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.justpainful.schdule
@@ -72,6 +76,10 @@ targets:
         product: SchduleModel
       - package: SchduleKit
         product: SchduleDesign
+      - package: SchduleKit
+        product: SchduleStats
+      - package: SchduleKit
+        product: SchduleStore
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.justpainful.schdule.kittests

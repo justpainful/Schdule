@@ -26,7 +26,8 @@ struct RootView: View {
                         counts: isCurrentMonth ? board.counts : [:],
                         tint: board.tint,
                         today: isCurrentMonth ? DemoFixture.today : nil,
-                        isInverted: board.isNegative
+                        isInverted: board.isNegative,
+                        isFutureMonth: month > DemoFixture.month
                     )
                     .accessibilityIdentifier("month-grid")
 
@@ -42,7 +43,7 @@ struct RootView: View {
                 // Enough room that the last row clears the floating bar when
                 // scrolled to the bottom — and enough content above it that the
                 // glass has something real to sample on the way past.
-                .padding(.bottom, 140)
+                .padding(.bottom, Metrics.floatingBarClearance)
             }
             .background(Color(.systemGroupedBackground))
             .navigationTitle(Text(verbatim: "Schdule"))
@@ -66,31 +67,39 @@ struct RootView: View {
 
     // MARK: - Board picker
 
-    /// Habits and anti-habits are kept in separate, labelled runs. They are not
-    /// the same kind of thing: a full row is a good month on one and a bad month
-    /// on the other, and mixing them in one list invites misreading the grid.
+    /// Habits and anti-habits get their own labelled row rather than sharing one
+    /// scroller. They are not the same kind of thing — a full row of marks is a
+    /// good month on one and a bad month on the other — and a single scroller
+    /// also kept clipping one group's label out of frame.
     private var boardPicker: some View {
-        ScrollView(.horizontal) {
-            HStack(alignment: .center, spacing: 12) {
-                groupLabel(String(localized: "Habits"), systemImage: "checkmark.circle")
-                ForEach(DemoFixture.positiveBoards) { chip(for: $0) }
-
-                Divider().frame(height: 26).padding(.horizontal, 2)
-
-                groupLabel(String(localized: "Avoiding"), systemImage: "xmark.circle")
-                ForEach(DemoFixture.negativeBoards) { chip(for: $0) }
-            }
-            .padding(.vertical, 2)
+        VStack(alignment: .leading, spacing: 12) {
+            boardGroup(
+                title: String(localized: "Habits"),
+                systemImage: "checkmark.circle.fill",
+                boards: DemoFixture.positiveBoards
+            )
+            boardGroup(
+                title: String(localized: "Avoiding"),
+                systemImage: "xmark.circle.fill",
+                boards: DemoFixture.negativeBoards
+            )
         }
-        .scrollIndicators(.hidden)
         .accessibilityIdentifier("board-picker")
     }
 
-    private func groupLabel(_ text: String, systemImage: String) -> some View {
-        Label(text, systemImage: systemImage)
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(.secondary)
-            .labelStyle(.titleAndIcon)
+    private func boardGroup(title: String, systemImage: String, boards: [DemoBoard]) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Label(title, systemImage: systemImage)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            ScrollView(.horizontal) {
+                HStack(spacing: 10) {
+                    ForEach(boards) { chip(for: $0) }
+                }
+                .padding(.vertical, 1)
+            }
+            .scrollIndicators(.hidden)
+        }
     }
 
     private func chip(for item: DemoBoard) -> some View {

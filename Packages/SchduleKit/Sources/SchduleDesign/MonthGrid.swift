@@ -10,6 +10,10 @@ public struct MonthGrid: View {
     private let tint: BoardTint
     private let today: Int?
     private let isInverted: Bool
+    /// Whether the whole month is still ahead. Distinct from `today` being nil,
+    /// which only means "today is not in this month" and says nothing about
+    /// which direction.
+    private let isFutureMonth: Bool
     private let onTapDay: ((Int) -> Void)?
 
     @Environment(\.calendar) private var calendar
@@ -20,6 +24,7 @@ public struct MonthGrid: View {
         tint: BoardTint,
         today: Int? = nil,
         isInverted: Bool = false,
+        isFutureMonth: Bool = false,
         onTapDay: ((Int) -> Void)? = nil
     ) {
         self.month = month
@@ -27,7 +32,14 @@ public struct MonthGrid: View {
         self.tint = tint
         self.today = today
         self.isInverted = isInverted
+        self.isFutureMonth = isFutureMonth
         self.onTapDay = onTapDay
+    }
+
+    private func isFuture(day: Int) -> Bool {
+        if isFutureMonth { return true }
+        guard let today else { return false }
+        return day > today
     }
 
     private var columns: [GridItem] {
@@ -69,7 +81,8 @@ public struct MonthGrid: View {
                         count: counts[day] ?? 0,
                         tint: tint,
                         isToday: day == today,
-                        isInverted: isInverted
+                        isInverted: isInverted,
+                        isFuture: isFuture(day: day)
                     )
 
                     if let onTapDay {
