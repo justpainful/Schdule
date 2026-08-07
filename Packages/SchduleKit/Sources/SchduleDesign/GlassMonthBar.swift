@@ -29,9 +29,12 @@ public struct GlassMonthBar: View {
     public var body: some View {
         GlassEffectContainer(spacing: 14) {
             HStack(spacing: 14) {
-                stepButton(systemName: "chevron.backward", action: onPrevious)
-                    .accessibilityLabel(Text("Previous month"))
-                    .accessibilityIdentifier("month-previous")
+                stepButton(
+                    systemName: "chevron.backward",
+                    identifier: "month-previous",
+                    label: "Previous month",
+                    action: onPrevious
+                )
 
                 Text(title)
                     .font(.headline)
@@ -41,9 +44,12 @@ public struct GlassMonthBar: View {
                     .padding(.horizontal, 18)
                     .glassEffect(.regular, in: .capsule)
 
-                stepButton(systemName: "chevron.forward", action: onNext)
-                    .accessibilityLabel(Text("Next month"))
-                    .accessibilityIdentifier("month-next")
+                stepButton(
+                    systemName: "chevron.forward",
+                    identifier: "month-next",
+                    label: "Next month",
+                    action: onNext
+                )
             }
         }
         // Reduce Transparency users get a solid material instead of glass.
@@ -55,13 +61,24 @@ public struct GlassMonthBar: View {
         }
     }
 
-    private func stepButton(systemName: String, action: @escaping () -> Void) -> some View {
+    /// The identifier goes on the `Button` itself, ahead of `.glassEffect`.
+    /// Applying it to the already-glassed result put it on a wrapper that
+    /// `app.buttons[...]` would not match, which silently cost a screenshot in
+    /// the first CI round.
+    private func stepButton(
+        systemName: String,
+        identifier: String,
+        label: LocalizedStringKey,
+        action: @escaping () -> Void
+    ) -> some View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: 16, weight: .semibold))
                 .frame(width: 44, height: 44)
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier(identifier)
+        .accessibilityLabel(Text(label))
         .glassEffect(.regular.interactive(), in: .circle)
     }
 }

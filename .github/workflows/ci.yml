@@ -54,17 +54,23 @@ jobs:
           path: UnitTests.xcresult
 
   screenshots:
-    name: Screenshots (${{ matrix.language }}-${{ matrix.appearance }})
+    name: Screenshots (${{ matrix.config }})
     runs-on: macos-26
     timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
+        # Each configuration is its own test method rather than an environment
+        # variable, so a matrix leg cannot silently render the wrong one.
         include:
-          - language: en
-            appearance: light
-          - language: ar
-            appearance: dark
+          - config: ar-dark
+            method: testTourArabicDark
+          - config: ar-light
+            method: testTourArabicLight
+          - config: en-dark
+            method: testTourEnglishDark
+          - config: en-light
+            method: testTourEnglishLight
     steps:
       - uses: actions/checkout@v5
 
@@ -81,11 +87,9 @@ jobs:
             -project Schdule.xcodeproj \
             -scheme Schdule \
             -destination "platform=iOS Simulator,name=$SIMULATOR" \
-            -only-testing:SchduleUITests \
+            -only-testing:SchduleUITests/ScreenshotTour/${{ matrix.method }} \
             -resultBundlePath Tour.xcresult \
-            CODE_SIGNING_ALLOWED=NO \
-            TEST_RUNNER_SCHDULE_APPEARANCE=${{ matrix.appearance }} \
-            TEST_RUNNER_SCHDULE_LANGUAGE=${{ matrix.language }}
+            CODE_SIGNING_ALLOWED=NO
 
       - name: Extract screenshots from result bundle
         if: always()
@@ -94,12 +98,15 @@ jobs:
           xcparse screenshots --test Tour.xcresult Screenshots || true
           echo "--- extracted ---"
           find Screenshots -type f -name '*.png' | sort
+          # A green job that produced no frames is worse than a red one: it
+          # looks reviewed when nothing was reviewed.
+          test "$(find Screenshots -name '*.png' | wc -l)" -ge 4
 
       - name: Upload screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: screenshots-${{ matrix.language }}-${{ matrix.appearance }}
+          name: screenshots-${{ matrix.config }}
           path: Screenshots
           if-no-files-found: warn
 
@@ -107,5 +114,5 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: tour-results-${{ matrix.language }}-${{ matrix.appearance }}
+          name: tour-results-${{ matrix.config }}
           path: Tour.xcresult

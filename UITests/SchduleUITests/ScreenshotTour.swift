@@ -7,24 +7,25 @@ import XCTest
 /// sampling the backdrop it is composited over and an offscreen renderer has no
 /// backdrop. Any screen with Liquid Glass on it has to be photographed for real.
 ///
-/// Configuration arrives as `TEST_RUNNER_`-prefixed environment variables, which
-/// xcodebuild strips the prefix from and forwards into the runner process.
+/// Configuration is baked into one test method per combination rather than read
+/// from the environment. The first CI round tried `TEST_RUNNER_`-prefixed
+/// variables; they never reached the runner process, and both matrix legs
+/// silently produced identical English screenshots — a failure mode that looks
+/// exactly like success until you read the filenames.
 final class ScreenshotTour: XCTestCase {
-
-    private var appearance: String {
-        ProcessInfo.processInfo.environment["SCHDULE_APPEARANCE"] ?? "light"
-    }
-
-    private var language: String {
-        ProcessInfo.processInfo.environment["SCHDULE_LANGUAGE"] ?? "en"
-    }
 
     override func setUp() {
         super.setUp()
         continueAfterFailure = false
     }
 
-    func testCaptureTour() {
+    func testTourArabicDark() { runTour(language: "ar", appearance: "dark") }
+    func testTourArabicLight() { runTour(language: "ar", appearance: "light") }
+    func testTourEnglishDark() { runTour(language: "en", appearance: "dark") }
+    func testTourEnglishLight() { runTour(language: "en", appearance: "light") }
+
+    private func runTour(language: String, appearance: String) {
+        let prefix = "\(language)-\(appearance)"
         let app = XCUIApplication()
         app.launchArguments = [
             "-UITestMode",
@@ -35,35 +36,34 @@ final class ScreenshotTour: XCTestCase {
         app.launch()
 
         let grid = app.otherElements["month-grid"]
-        XCTAssertTrue(grid.waitForExistence(timeout: 30), "Month grid never appeared")
+        XCTAssertTrue(grid.waitForExistence(timeout: 60), "Month grid never appeared")
+        capture(app, named: "\(prefix)-01-habit-board")
 
-        capture(app, named: "01-month-count-board")
+        // An anti-habit board: crosses instead of ticks, and a "days clean"
+        // streak. Worth its own frame so the two readings sit side by side.
+        let tiktok = app.buttons["board-chip-tiktok"]
+        XCTAssertTrue(tiktok.waitForExistence(timeout: 10), "TikTok chip missing")
+        tiktok.tap()
+        capture(app, named: "\(prefix)-02-avoid-board")
 
-        // The check-style board renders ticks instead of numerals; worth its own
-        // frame so the two glyph treatments can be compared side by side.
-        let picker = app.scrollViews["board-picker"]
-        if picker.waitForExistence(timeout: 5) {
-            let firstBoard = picker.buttons.element(boundBy: 0)
-            if firstBoard.exists {
-                firstBoard.tap()
-                capture(app, named: "02-month-check-board")
-            }
-        }
+        // Scrolled down, the grid passes *under* the floating bar. This is the
+        // only frame that proves the glass is really sampling content rather
+        // than sitting on flat background and looking like a white pill.
+        app.swipeUp()
+        capture(app, named: "\(prefix)-03-glass-over-content")
 
-        // An empty month proves the grid still lays out with no data at all, and
-        // that the glass bar re-renders over a nearly blank backdrop.
+        // An empty month proves the grid still lays out with no data at all.
         let next = app.buttons["month-next"]
-        if next.waitForExistence(timeout: 5) {
-            next.tap()
-            capture(app, named: "03-empty-month")
-        }
+        XCTAssertTrue(next.waitForExistence(timeout: 10), "Next-month button missing")
+        next.tap()
+        capture(app, named: "\(prefix)-04-empty-month")
     }
 
     private func capture(_ app: XCUIApplication, named name: String) {
         // Let animations settle so frames are not caught mid-transition.
         Thread.sleep(forTimeInterval: 1.0)
         let attachment = XCTAttachment(screenshot: app.screenshot())
-        attachment.name = "\(language)-\(appearance)-\(name)"
+        attachment.name = name
         attachment.lifetime = .keepAlways
         add(attachment)
     }
