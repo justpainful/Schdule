@@ -1,0 +1,111 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SIMULATOR: iPhone 17 Pro
+
+jobs:
+  unit-tests:
+    name: Build & unit tests
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate project
+        run: xcodegen generate
+
+      - name: List available simulators
+        run: xcrun simctl list devices available
+
+      - name: Run unit tests
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project Schdule.xcodeproj \
+            -scheme Schdule \
+            -destination "platform=iOS Simulator,name=$SIMULATOR" \
+            -only-testing:SchduleKitTests \
+            -resultBundlePath UnitTests.xcresult \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload unit test result bundle
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: UnitTests.xcresult
+
+  screenshots:
+    name: Screenshots (${{ matrix.language }}-${{ matrix.appearance }})
+    runs-on: macos-26
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: en
+            appearance: light
+          - language: ar
+            appearance: dark
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install tooling
+        run: brew install xcodegen chargepoint/xcparse/xcparse
+
+      - name: Generate project
+        run: xcodegen generate
+
+      - name: Run screenshot tour
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project Schdule.xcodeproj \
+            -scheme Schdule \
+            -destination "platform=iOS Simulator,name=$SIMULATOR" \
+            -only-testing:SchduleUITests \
+            -resultBundlePath Tour.xcresult \
+            CODE_SIGNING_ALLOWED=NO \
+            TEST_RUNNER_SCHDULE_APPEARANCE=${{ matrix.appearance }} \
+            TEST_RUNNER_SCHDULE_LANGUAGE=${{ matrix.language }}
+
+      - name: Extract screenshots from result bundle
+        if: always()
+        run: |
+          mkdir -p Screenshots
+          xcparse screenshots --test Tour.xcresult Screenshots || true
+          echo "--- extracted ---"
+          find Screenshots -type f -name '*.png' | sort
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots-${{ matrix.language }}-${{ matrix.appearance }}
+          path: Screenshots
+          if-no-files-found: warn
+
+      - name: Upload result bundle on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: tour-results-${{ matrix.language }}-${{ matrix.appearance }}
+          path: Tour.xcresult

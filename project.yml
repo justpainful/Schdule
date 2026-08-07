@@ -1,0 +1,108 @@
+name: Schdule
+
+options:
+  bundleIdPrefix: com.justpainful
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    IPHONEOS_DEPLOYMENT_TARGET: "26.0"
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    # Simulator-only CI builds: no signing identity is available on the runner.
+    CODE_SIGNING_ALLOWED: NO
+    CODE_SIGNING_REQUIRED: NO
+    CODE_SIGN_IDENTITY: ""
+    DEVELOPMENT_TEAM: ""
+
+packages:
+  SchduleKit:
+    path: Packages/SchduleKit
+
+targets:
+  Schdule:
+    type: application
+    platform: iOS
+    sources:
+      - path: App/Schdule
+    dependencies:
+      - package: SchduleKit
+        product: SchduleDesign
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.justpainful.schdule
+        PRODUCT_NAME: Schdule
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        TARGETED_DEVICE_FAMILY: "1,2"
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
+    info:
+      path: App/Schdule/Info.plist
+      properties:
+        CFBundleDisplayName: Schdule
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        UILaunchScreen: {}
+        UIApplicationSupportsIndirectInputEvents: true
+        # Arabic is the primary development language; English is a full peer.
+        CFBundleDevelopmentRegion: en
+        CFBundleLocalizations: [en, ar]
+
+  SchduleKitTests:
+    type: bundle.unit-testing
+    platform: iOS
+    sources:
+      - path: Tests/SchduleKitTests
+    dependencies:
+      - package: SchduleKit
+        product: SchduleModel
+      - package: SchduleKit
+        product: SchduleDesign
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.justpainful.schdule.kittests
+        GENERATE_INFOPLIST_FILE: YES
+
+  SchduleUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: UITests/SchduleUITests
+    dependencies:
+      - target: Schdule
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.justpainful.schdule.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: Schdule
+
+schemes:
+  Schdule:
+    build:
+      targets:
+        Schdule: all
+        SchduleKitTests: [test]
+        SchduleUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      gatherCoverageData: false
+      targets:
+        - SchduleKitTests
+        - SchduleUITests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
