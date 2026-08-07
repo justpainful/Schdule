@@ -1,0 +1,8 @@
+# Authored on Windows, built on macOS — keep everything LF in the repo and in
+# the working tree so nothing arrives at the runner with stray carriage returns.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.pdf binary
+*.xcassets/** -text
