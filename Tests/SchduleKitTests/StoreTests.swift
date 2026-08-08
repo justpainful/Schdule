@@ -60,6 +60,15 @@ struct StoreLoggingTests {
         #expect(store.entry(for: board, on: day) == nil)
     }
 
+    @Test("A multi-step increment records one timestamp per occurrence")
+    func bulkIncrementTimestamps() throws {
+        let (store, board) = try makeStore()
+        let day = DayKey(value: 20260808)
+        try store.increment(board: board, on: day, by: 3)
+        #expect(store.count(for: board, on: day) == 3)
+        #expect(store.entry(for: board, on: day)?.timestamps.count == 3)
+    }
+
     @Test("Counts never go negative")
     func noNegativeCounts() throws {
         let (store, board) = try makeStore()

@@ -101,19 +101,29 @@ public final class SchduleStore {
         if let existing {
             existing.count = target
             existing.source = source
-            if delta > 0 { existing.timestamps.append(timestamp) }
-            else if !existing.timestamps.isEmpty { existing.timestamps.removeLast() }
+            Self.syncTimestamps(of: existing, to: target, stamp: timestamp)
             // A day back at zero holds no information; drop it so the store
             // stays proportional to what actually happened.
             if target == 0 { context.delete(existing) }
         } else if target > 0 {
-            let entry = DayEntry(day: day, count: target, source: source, timestamps: [timestamp])
+            let entry = DayEntry(day: day, count: target, source: source)
+            Self.syncTimestamps(of: entry, to: target, stamp: timestamp)
             entry.board = board
             context.insert(entry)
         }
 
         try context.save()
         return target
+    }
+
+    /// Keeps the per-occurrence timestamps the same length as the count.
+    ///
+    /// They have to stay in step, or the "when do I actually do this" histogram
+    /// quietly lies. Creating an entry with a count of four and a single stamp
+    /// was exactly that bug.
+    private static func syncTimestamps(of entry: DayEntry, to target: Int, stamp: Date) {
+        while entry.timestamps.count > target { entry.timestamps.removeLast() }
+        while entry.timestamps.count < target { entry.timestamps.append(stamp) }
     }
 
     /// Sets a day to an exact count, for the long-press editor.
@@ -128,17 +138,16 @@ public final class SchduleStore {
         let target = min(max(newCount, 0), ceiling)
         let existing = entry(for: board, on: day)
 
+        let now = Date()
         if target == 0 {
             if let existing { context.delete(existing) }
         } else if let existing {
             existing.count = target
             existing.source = source
-            // Keep the timestamp list the same length as the count so the
-            // "when do I do this" histogram stays honest after a manual edit.
-            while existing.timestamps.count > target { existing.timestamps.removeLast() }
-            while existing.timestamps.count < target { existing.timestamps.append(Date()) }
+            Self.syncTimestamps(of: existing, to: target, stamp: now)
         } else {
-            let entry = DayEntry(day: day, count: target, source: source, timestamps: [Date()])
+            let entry = DayEntry(day: day, count: target, source: source)
+            Self.syncTimestamps(of: entry, to: target, stamp: now)
             entry.board = board
             context.insert(entry)
         }
