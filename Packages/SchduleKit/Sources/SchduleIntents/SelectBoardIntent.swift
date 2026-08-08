@@ -20,6 +20,30 @@ public struct SelectBoardIntent: WidgetConfigurationIntent {
     }
 }
 
+/// Which board the Control Centre / Action button control logs to.
+///
+/// A separate type from `SelectBoardIntent` because controls and widgets are
+/// configured through different protocols — `AppIntentControlValueProvider`
+/// requires a `ControlConfigurationIntent`, and a widget's configuration intent
+/// will not satisfy it.
+public struct SelectBoardControlIntent: ControlConfigurationIntent {
+    public static let title: LocalizedStringResource = "Choose Board"
+    public static let description = IntentDescription("Pick which board this control logs to.")
+
+    @Parameter(title: "Board")
+    public var board: BoardEntity?
+
+    public init() {}
+
+    public init(board: BoardEntity?) {
+        self.board = board
+    }
+
+    public static var parameterSummary: some ParameterSummary {
+        Summary("Log to \(\.$board)")
+    }
+}
+
 /// Which boards the multi-board widget shows, in order.
 public struct SelectBoardsIntent: WidgetConfigurationIntent {
     public static let title: LocalizedStringResource = "Choose Boards"
