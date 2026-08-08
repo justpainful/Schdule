@@ -10,13 +10,13 @@ import WidgetKit
 /// the Control Centre control, the Action button, "Hey Siri, log a workout", and
 /// the action a Shortcut can call. One implementation, so they cannot drift.
 public struct LogEntryIntent: AppIntent {
-    public static var title: LocalizedStringResource = "Log Entry"
-    public static var description = IntentDescription("Adds one to today's count on a board.")
+    public static let title: LocalizedStringResource = "Log Entry"
+    public static let description = IntentDescription("Adds one to today's count on a board.")
 
     /// False so a widget button logs in place instead of throwing the user into
     /// the app. Being able to log without leaving the Home Screen is most of
     /// the point of the widget.
-    public static var openAppWhenRun: Bool = false
+    public static let openAppWhenRun: Bool = false
 
     @Parameter(title: "Board")
     public var board: BoardEntity
@@ -64,9 +64,9 @@ public struct LogEntryIntent: AppIntent {
 
 /// Reports today's count without changing anything.
 public struct CheckBoardIntent: AppIntent {
-    public static var title: LocalizedStringResource = "Check Board"
-    public static var description = IntentDescription("Reports today's count on a board.")
-    public static var openAppWhenRun: Bool = false
+    public static let title: LocalizedStringResource = "Check Board"
+    public static let description = IntentDescription("Reports today's count on a board.")
+    public static let openAppWhenRun: Bool = false
 
     @Parameter(title: "Board")
     public var board: BoardEntity

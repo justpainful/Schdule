@@ -23,10 +23,12 @@ public struct BoardEntity: AppEntity, Identifiable, Sendable {
         )
     }
 
-    public static var defaultQuery = BoardEntityQuery()
+    public static let defaultQuery = BoardEntityQuery()
 }
 
 public struct BoardEntityQuery: EntityQuery, EntityStringQuery {
+    public init() {}
+
     @MainActor
     public func entities(for identifiers: [UUID]) async throws -> [BoardEntity] {
         try all().filter { identifiers.contains($0.id) }
