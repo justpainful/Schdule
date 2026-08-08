@@ -357,7 +357,6 @@ struct BoardEditorView: View {
     }
 
     private func scheduleReminder(for board: Board) {
-        let scheduler = ReminderScheduler()
         let id = board.id
         let name = board.name
         let inverted = board.isInverted
@@ -370,7 +369,11 @@ struct BoardEditorView: View {
         )
         let weekdays = reminderWeekdays
 
-        Task {
+        // The scheduler is built inside the task rather than captured: it holds a
+        // UNUserNotificationCenter, which is not Sendable, so sending one across
+        // the boundary is a data race the compiler is right to reject.
+        Task { @MainActor in
+            let scheduler = ReminderScheduler()
             guard allowed else {
                 await scheduler.cancelAll(boardID: id)
                 return
