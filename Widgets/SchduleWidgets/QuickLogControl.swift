@@ -45,12 +45,17 @@ struct QuickLogControlProvider: AppIntentControlValueProvider {
 
     @MainActor
     func currentValue(configuration: SelectBoardControlIntent) async throws -> QuickLogValue {
-        let entity = configuration.board
-            ?? (try? await BoardEntityQuery().defaultResult())
-            ?? .placeholder
+        // The await is hoisted out of the coalescing chain on purpose: the
+        // right-hand side of `??` is a non-async autoclosure, so awaiting inside
+        // one does not compile.
+        var entity = configuration.board
+        if entity == nil {
+            entity = await BoardEntityQuery().defaultResult()
+        }
+        let resolved = entity ?? .placeholder
         return QuickLogValue(
-            board: entity,
-            count: WidgetData.load(boardID: entity.id)?.todayCount ?? 0
+            board: resolved,
+            count: WidgetData.load(boardID: resolved.id)?.todayCount ?? 0
         )
     }
 }
