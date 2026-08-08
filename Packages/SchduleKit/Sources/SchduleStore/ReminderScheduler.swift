@@ -152,7 +152,11 @@ public enum ReminderBuilder {
 }
 
 /// Talks to `UNUserNotificationCenter`.
-public struct ReminderScheduler: Sendable {
+///
+/// Not `Sendable`, because `UNUserNotificationCenter` is not. Callers reach it
+/// from the main actor, which is where scheduling happens anyway — every trigger
+/// is written in response to something the user just did.
+public struct ReminderScheduler {
     private let center: UNUserNotificationCenter
 
     public init(center: UNUserNotificationCenter = .current()) {
