@@ -220,6 +220,20 @@ jobs:
           APP="build/Schdule.xcarchive/Products/Applications/Schdule.app"
           test -d "$APP" || { echo "No .app in the archive"; exit 1; }
 
+          # SchduleKit is a dynamic framework. If the embed phase is missing it
+          # still links cleanly and then crashes on launch with "Library not
+          # loaded" -- a failure that only shows up on a real device, long after
+          # CI has gone green. Assert it here instead.
+          test -d "$APP/Frameworks/SchduleKit.framework" || {
+            echo "::error::SchduleKit.framework was not embedded; the app would crash at launch."
+            ls -R "$APP" | head -40
+            exit 1
+          }
+          test -d "$APP/PlugIns/SchduleWidgets.appex" || {
+            echo "::error::The widget extension is missing from the bundle."
+            exit 1
+          }
+
           # An .ipa is a zip with the bundle inside a folder named Payload, and
           # nothing else is required for a sideloader to re-sign it.
           rm -rf build/Payload && mkdir -p build/Payload

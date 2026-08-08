@@ -29,8 +29,12 @@ targets:
     sources:
       - path: App/Schdule
     dependencies:
+      # embed is explicit: the product is a dynamic framework, and without a
+      # copy phase it links fine and then fails at launch with "Library not
+      # loaded". The IPA job asserts it made it into the bundle.
       - package: SchduleKit
         product: SchduleKit
+        embed: true
       - target: SchduleWidgets
         embed: true
     settings:
