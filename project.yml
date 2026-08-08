@@ -35,6 +35,8 @@ targets:
         product: SchduleStore
       - package: SchduleKit
         product: SchduleStats
+      - package: SchduleKit
+        product: SchduleExport
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.justpainful.schdule
@@ -80,6 +82,8 @@ targets:
         product: SchduleStats
       - package: SchduleKit
         product: SchduleStore
+      - package: SchduleKit
+        product: SchduleExport
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.justpainful.schdule.kittests

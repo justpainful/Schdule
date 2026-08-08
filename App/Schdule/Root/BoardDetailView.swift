@@ -61,6 +61,9 @@ struct BoardDetailView: View {
         .sheet(item: $editingDay) { day in
             DayEditorSheet(board: board, day: day)
         }
+        .sheet(isPresented: $isSharing) {
+            ShareMonthSheet(board: board, month: shownMonth)
+        }
     }
 
     // MARK: - Unlocked content

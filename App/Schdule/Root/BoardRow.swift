@@ -60,7 +60,7 @@ struct BoardRow: View {
                 .font(.system(size: 19, weight: .semibold, design: .rounded))
                 .monospacedDigit()
                 .contentTransition(.numericText())
-                .foregroundStyle(count > 0 ? tint.color : .tertiary)
+                .foregroundStyle(count > 0 ? AnyShapeStyle(tint.color) : AnyShapeStyle(.tertiary))
                 .frame(minWidth: 22)
 
             if let onIncrement {

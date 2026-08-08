@@ -10,6 +10,7 @@ let package = Package(
         .library(name: "SchduleStats", targets: ["SchduleStats"]),
         .library(name: "SchduleStore", targets: ["SchduleStore"]),
         .library(name: "SchduleDesign", targets: ["SchduleDesign"]),
+        .library(name: "SchduleExport", targets: ["SchduleExport"]),
     ],
     targets: [
         // Value types and calendar arithmetic. No frameworks, no I/O.
@@ -34,6 +35,14 @@ let package = Package(
         .target(
             name: "SchduleDesign",
             dependencies: ["SchduleModel", "SchduleStats"],
+            swiftSettings: [.swiftLanguageMode(.v6)]
+        ),
+        // Posters, PDF, CSV, JSON. Sees value types only, never SwiftData: a
+        // poster is a picture of a moment, and a live model object that can
+        // change mid-render is the wrong thing to hand a renderer.
+        .target(
+            name: "SchduleExport",
+            dependencies: ["SchduleModel", "SchduleDesign"],
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
         // Tests deliberately live in the Xcode project (Tests/SchduleKitTests)
