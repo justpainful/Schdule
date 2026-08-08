@@ -11,6 +11,13 @@ public struct BoardEntity: AppEntity, Identifiable, Sendable {
     public let symbolName: String
     public let isInverted: Bool
 
+    public init(id: UUID, name: String, symbolName: String, isInverted: Bool) {
+        self.id = id
+        self.name = name
+        self.symbolName = symbolName
+        self.isInverted = isInverted
+    }
+
     public static var typeDisplayRepresentation: TypeDisplayRepresentation {
         TypeDisplayRepresentation(name: "Board")
     }

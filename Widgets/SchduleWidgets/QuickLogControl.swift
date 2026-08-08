@@ -43,10 +43,15 @@ struct QuickLogControlProvider: AppIntentControlValueProvider {
         )
     }
 
+    @MainActor
     func currentValue(configuration: SelectBoardControlIntent) async throws -> QuickLogValue {
-        let entity = configuration.board ?? (try? await BoardEntityQuery().defaultResult()) ?? .placeholder
-        let data = await MainActor.run { WidgetData.load(boardID: entity.id) }
-        return QuickLogValue(board: entity, count: data?.todayCount ?? 0)
+        let entity = configuration.board
+            ?? (try? await BoardEntityQuery().defaultResult())
+            ?? .placeholder
+        return QuickLogValue(
+            board: entity,
+            count: WidgetData.load(boardID: entity.id)?.todayCount ?? 0
+        )
     }
 }
 
