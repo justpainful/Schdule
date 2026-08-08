@@ -32,78 +32,13 @@ struct BoardEditorView: View {
                 if isCreating, name.isEmpty {
                     templateSection
                 }
-
-                Section {
-                    HStack(spacing: 14) {
-                        Image(systemName: symbol)
-                            .font(.system(size: 20, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .frame(width: 44, height: 44)
-                            .background {
-                                RoundedRectangle(cornerRadius: 12, style: .continuous).fill(tint.color)
-                            }
-                        TextField(String(localized: "Board name"), text: $name)
-                            .font(.body)
-                            .accessibilityIdentifier("board-name-field")
-                    }
-                }
-
-                Section(String(localized: "Kind")) {
-                    Picker(String(localized: "Kind"), selection: $kind) {
-                        ForEach(TrackerKind.allCases, id: \.self) { kind in
-                            Text(title(for: kind)).tag(kind)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    Text(explanation(for: kind))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                if kind == .quantity || kind == .duration {
-                    Section(String(localized: "Unit")) {
-                        TextField(String(localized: "glasses, km, pages"), text: $unit)
-                    }
-                }
-
-                Section(String(localized: "Goal")) {
-                    Stepper(
-                        dailyGoal == 0
-                            ? String(localized: "No daily goal")
-                            : String(localized: "\(dailyGoal) per day"),
-                        value: $dailyGoal,
-                        in: 0...50
-                    )
-                    Stepper(
-                        weeklyTarget == 0
-                            ? String(localized: "No weekly target")
-                            : String(localized: "\(weeklyTarget) days per week"),
-                        value: $weeklyTarget,
-                        in: 0...7
-                    )
-                }
-
-                Section(String(localized: "Colour")) {
-                    tintGrid
-                }
-
-                Section(String(localized: "Symbol")) {
-                    symbolPicker
-                }
-
-                Section {
-                    Picker(String(localized: "Folder"), selection: $folderID) {
-                        Text("None").tag(UUID?.none)
-                        ForEach(folders) { folder in
-                            Text(folder.name).tag(UUID?.some(folder.id))
-                        }
-                    }
-                    Toggle(isOn: $isLocked) {
-                        Label(String(localized: "Require Face ID"), systemImage: "lock.fill")
-                    }
-                } footer: {
-                    Text("A locked board is hidden from widgets and search, and asks for Face ID every time the app returns to the foreground.")
-                }
+                identitySection
+                kindSection
+                unitSection
+                goalSection
+                Section(String(localized: "Colour")) { tintGrid }
+                Section(String(localized: "Symbol")) { symbolPicker }
+                placementSection
             }
             .navigationTitle(Text(isCreating ? "New Board" : "Edit Board"))
             .navigationBarTitleDisplayMode(.inline)
@@ -118,6 +53,79 @@ struct BoardEditorView: View {
                 }
             }
             .task { load() }
+        }
+    }
+
+    // MARK: - Sections
+
+    private var identitySection: some View {
+        Section {
+            HStack(spacing: 14) {
+                Image(systemName: symbol)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 44, height: 44)
+                    .background {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(tint.color)
+                    }
+                TextField(String(localized: "Board name"), text: $name)
+                    .accessibilityIdentifier("board-name-field")
+            }
+        }
+    }
+
+    private var kindSection: some View {
+        Section(String(localized: "Kind")) {
+            Picker(String(localized: "Kind"), selection: $kind) {
+                ForEach(TrackerKind.allCases, id: \.self) { option in
+                    Text(title(for: option)).tag(option)
+                }
+            }
+            .pickerStyle(.menu)
+            Text(explanation(for: kind))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    @ViewBuilder
+    private var unitSection: some View {
+        if kind == .quantity || kind == .duration {
+            Section(String(localized: "Unit")) {
+                TextField(String(localized: "glasses, km, pages"), text: $unit)
+            }
+        }
+    }
+
+    private var goalSection: some View {
+        Section(String(localized: "Goal")) {
+            Stepper(value: $dailyGoal, in: 0...50) {
+                Text(dailyGoal == 0
+                    ? String(localized: "No daily goal")
+                    : String(localized: "\(dailyGoal) per day"))
+            }
+            Stepper(value: $weeklyTarget, in: 0...7) {
+                Text(weeklyTarget == 0
+                    ? String(localized: "No weekly target")
+                    : String(localized: "\(weeklyTarget) days per week"))
+            }
+        }
+    }
+
+    private var placementSection: some View {
+        Section {
+            Picker(String(localized: "Folder"), selection: $folderID) {
+                Text("None").tag(UUID?.none)
+                ForEach(folders) { folder in
+                    Text(folder.name).tag(UUID?.some(folder.id))
+                }
+            }
+            Toggle(isOn: $isLocked) {
+                Label(String(localized: "Require Face ID"), systemImage: "lock.fill")
+            }
+        } footer: {
+            Text("A locked board is hidden from widgets and search, and asks for Face ID every time the app returns to the foreground.")
         }
     }
 

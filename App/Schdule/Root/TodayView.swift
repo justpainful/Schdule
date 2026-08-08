@@ -7,43 +7,21 @@ import SchduleStore
 
 /// The daily driver: everything you might log today, one tap from logging it.
 struct TodayView: View {
+    // Queried unfiltered and narrowed in Swift. A `#Predicate` over two
+    // optionals compiled fine but pushed this view past the type-checker's
+    // budget, and the filtering is over a handful of rows either way.
+    @Query(sort: [SortDescriptor(\Board.sortIndex), SortDescriptor(\Board.createdAt)])
+    private var allBoards: [Board]
+
     @Environment(\.appModel) private var appModel
-    @Query(
-        filter: #Predicate<Board> { $0.deletedAt == nil && $0.archivedAt == nil },
-        sort: [SortDescriptor(\Board.sortIndex), SortDescriptor(\Board.createdAt)]
-    )
-    private var boards: [Board]
-
     @State private var editing: DayEditorTarget?
-
-    private var habits: [Board] { boards.filter { !$0.isInverted } }
-    private var avoiding: [Board] { boards.filter(\.isInverted) }
 
     var body: some View {
         NavigationStack {
             List {
-                Section {
-                    TodaySummaryCard(boards: boards, day: today, calendar: calendar)
-                        .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 10, trailing: 0))
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
-                }
-
-                if !habits.isEmpty {
-                    Section(String(localized: "Habits")) {
-                        ForEach(habits) { row(for: $0) }
-                    }
-                }
-
-                if !avoiding.isEmpty {
-                    Section {
-                        ForEach(avoiding) { row(for: $0) }
-                    } header: {
-                        Text("Avoiding")
-                    } footer: {
-                        Text("A day you log nothing here is a day that went well.")
-                    }
-                }
+                summarySection
+                habitsSection
+                avoidingSection
             }
             .listStyle(.insetGrouped)
             .navigationTitle(Text(dayTitle))
@@ -55,10 +33,46 @@ struct TodayView: View {
         }
     }
 
+    // MARK: - Sections
+
+    private var summarySection: some View {
+        Section {
+            TodaySummaryCard(habits: habits, avoiding: avoiding, day: today)
+                .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 10, trailing: 0))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+        }
+    }
+
     @ViewBuilder
+    private var habitsSection: some View {
+        if !habits.isEmpty {
+            Section(String(localized: "Habits")) {
+                ForEach(habits) { board in
+                    row(for: board)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var avoidingSection: some View {
+        if !avoiding.isEmpty {
+            Section {
+                ForEach(avoiding) { board in
+                    row(for: board)
+                }
+            } header: {
+                Text("Avoiding")
+            } footer: {
+                Text("A day you log nothing here is a day that went well.")
+            }
+        }
+    }
+
     private func row(for board: Board) -> some View {
         let locked = !(appModel?.isUnlocked(board) ?? true)
-        BoardRow(
+        return BoardRow(
             board: board,
             count: locked ? 0 : count(for: board),
             subtitle: locked ? String(localized: "Locked") : subtitle(for: board),
@@ -67,28 +81,38 @@ struct TodayView: View {
             onDecrement: locked ? nil : { adjust(board, by: -1) }
         )
         .contentShape(.rect)
-        .onTapGesture {
-            if locked {
-                Task { await appModel?.unlock(board) }
-            } else {
-                editing = DayEditorTarget(board: board, day: today)
-            }
-        }
+        .onTapGesture { handleTap(board, locked: locked) }
         .accessibilityIdentifier("today-row-\(board.name)")
     }
 
+    private func handleTap(_ board: Board, locked: Bool) {
+        if locked {
+            Task { await appModel?.unlock(board) }
+        } else {
+            editing = DayEditorTarget(board: board, day: today)
+        }
+    }
+
     // MARK: - Data
+
+    private var boards: [Board] {
+        allBoards.filter { $0.deletedAt == nil && $0.archivedAt == nil }
+    }
+
+    private var habits: [Board] { boards.filter { !$0.isInverted } }
+    private var avoiding: [Board] { boards.filter(\.isInverted) }
 
     private var calendar: Calendar { appModel?.calendar ?? .current }
     private var today: DayKey { appModel?.today ?? DayKey(date: .now) }
 
     private var dayTitle: String {
-        today.date(calendar: calendar).formatted(
-            Date.FormatStyle(locale: .autoupdatingCurrent, calendar: calendar, timeZone: calendar.timeZone)
-                .weekday(.wide)
-                .day()
-                .month(.wide)
+        var style = Date.FormatStyle(
+            locale: .autoupdatingCurrent,
+            calendar: calendar,
+            timeZone: calendar.timeZone
         )
+        style = style.weekday(.wide).day().month(.wide)
+        return today.date(calendar: calendar).formatted(style)
     }
 
     private func count(for board: Board) -> Int {
@@ -96,18 +120,17 @@ struct TodayView: View {
     }
 
     /// Says the most useful true thing about this board right now, which differs
-    /// by kind: a goal if there is one, otherwise a streak, otherwise nothing.
+    /// by kind: a goal if there is one, otherwise a streak.
     private func subtitle(for board: Board) -> String {
-        let counts = board.countsByDay
-
         if let goal = board.dailyGoal, goal > 0 {
             let done = count(for: board)
-            return String(localized: "\(done) of \(goal) \(board.unit ?? "")")
-                .trimmingCharacters(in: .whitespaces)
+            let unit = board.unit ?? ""
+            let base = String(localized: "\(done) of \(goal)")
+            return unit.isEmpty ? base : base + " " + unit
         }
 
         let streak = BoardStatistics.currentStreak(
-            counts: counts,
+            counts: board.countsByDay,
             from: board.startDay,
             through: today,
             isInverted: board.isInverted,
@@ -130,22 +153,19 @@ struct TodayView: View {
     }
 }
 
-/// Identifies which board/day the editor sheet is opened for.
+/// Identifies which board and day the editor sheet is opened for.
 struct DayEditorTarget: Identifiable {
     let board: Board
     let day: DayKey
     var id: String { "\(board.id)-\(day.value)" }
 }
 
-/// A one-line read on the day: how many habits are done and whether anything
+/// A one-line read on the day: how many habits are done, and whether anything
 /// has been slipped on.
 private struct TodaySummaryCard: View {
-    let boards: [Board]
+    let habits: [Board]
+    let avoiding: [Board]
     let day: DayKey
-    let calendar: Calendar
-
-    private var habits: [Board] { boards.filter { !$0.isInverted } }
-    private var avoiding: [Board] { boards.filter(\.isInverted) }
 
     private var habitsDone: Int {
         habits.count { ($0.countsByDay[day] ?? 0) > 0 }
@@ -161,14 +181,14 @@ private struct TodaySummaryCard: View {
                 value: "\(habitsDone)/\(habits.count)",
                 caption: String(localized: "Habits done"),
                 symbol: "checkmark.circle.fill",
-                tint: .accentColor
+                tint: Color.accentColor
             )
             Divider().frame(height: 34)
             metric(
                 value: "\(slips)",
                 caption: String(localized: "Slips today"),
                 symbol: "xmark.circle.fill",
-                tint: slips == 0 ? .secondary : .red
+                tint: slips == 0 ? Color.secondary : Color.red
             )
         }
         .padding(.vertical, 16)

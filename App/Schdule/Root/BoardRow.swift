@@ -18,14 +18,7 @@ struct BoardRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            Image(systemName: board.symbolName)
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(.white)
-                .frame(width: 36, height: 36)
-                .background {
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(tint.color)
-                }
+            BoardGlyph(board: board, size: 36)
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 5) {

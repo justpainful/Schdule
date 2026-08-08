@@ -101,49 +101,7 @@ struct BoardsView: View {
     private var boardList: some View {
         List(selection: $selectedBoardID) {
             ForEach(scopedBoards) { board in
-                BoardRow(
-                    board: board,
-                    count: countToday(board),
-                    subtitle: summary(for: board),
-                    isLocked: !(appModel?.isUnlocked(board) ?? true)
-                )
-                .tag(board.id)
-                .swipeActions(edge: .trailing) {
-                    if scope?.isTrash == true {
-                        Button {
-                            try? appModel?.store.restore(board)
-                        } label: {
-                            Label(String(localized: "Restore"), systemImage: "arrow.uturn.backward")
-                        }
-                        .tint(.blue)
-                    } else {
-                        Button(role: .destructive) {
-                            try? appModel?.store.trash(board)
-                        } label: {
-                            Label(String(localized: "Delete"), systemImage: "trash")
-                        }
-                        Button {
-                            try? appModel?.store.archive(board)
-                        } label: {
-                            Label(String(localized: "Archive"), systemImage: "archivebox")
-                        }
-                        .tint(.orange)
-                    }
-                }
-                .swipeActions(edge: .leading) {
-                    if scope?.isTrash != true {
-                        Button {
-                            board.isPinned.toggle()
-                            try? context.save()
-                        } label: {
-                            Label(
-                                board.isPinned ? String(localized: "Unpin") : String(localized: "Pin"),
-                                systemImage: board.isPinned ? "pin.slash" : "pin"
-                            )
-                        }
-                        .tint(.yellow)
-                    }
-                }
+                listRow(board)
             }
         }
         .searchable(text: $searchText, prompt: Text("Search boards"))
@@ -153,6 +111,58 @@ struct BoardsView: View {
             if scopedBoards.isEmpty {
                 emptyState
             }
+        }
+    }
+
+    private func listRow(_ board: Board) -> some View {
+        BoardRow(
+            board: board,
+            count: countToday(board),
+            subtitle: summary(for: board),
+            isLocked: !(appModel?.isUnlocked(board) ?? true)
+        )
+        .tag(board.id)
+        .swipeActions(edge: .trailing) { trailingActions(board) }
+        .swipeActions(edge: .leading) { leadingActions(board) }
+    }
+
+    @ViewBuilder
+    private func trailingActions(_ board: Board) -> some View {
+        if scope?.isTrash == true {
+            Button {
+                try? appModel?.store.restore(board)
+            } label: {
+                Label(String(localized: "Restore"), systemImage: "arrow.uturn.backward")
+            }
+            .tint(.blue)
+        } else {
+            Button(role: .destructive) {
+                try? appModel?.store.trash(board)
+            } label: {
+                Label(String(localized: "Delete"), systemImage: "trash")
+            }
+            Button {
+                try? appModel?.store.archive(board)
+            } label: {
+                Label(String(localized: "Archive"), systemImage: "archivebox")
+            }
+            .tint(.orange)
+        }
+    }
+
+    @ViewBuilder
+    private func leadingActions(_ board: Board) -> some View {
+        if scope?.isTrash != true {
+            Button {
+                board.isPinned.toggle()
+                try? context.save()
+            } label: {
+                Label(
+                    board.isPinned ? String(localized: "Unpin") : String(localized: "Pin"),
+                    systemImage: board.isPinned ? "pin.slash" : "pin"
+                )
+            }
+            .tint(.yellow)
         }
     }
 
