@@ -9,13 +9,15 @@ import SwiftUI
 struct UITestConfiguration: Sendable {
     let isUITesting: Bool
     let colorScheme: ColorScheme?
-    /// The date the app should treat as "today". Frozen under test.
-    let referenceDate: Date
+    /// Whether the tour wants the locked board to stay locked, so the locked
+    /// state can be photographed.
+    let denyBiometrics: Bool
 
     static let current = UITestConfiguration(arguments: ProcessInfo.processInfo.arguments)
 
     init(arguments: [String]) {
         isUITesting = arguments.contains("-UITestMode")
+        denyBiometrics = arguments.contains("-UITestDenyBiometrics")
 
         if let index = arguments.firstIndex(of: "-UITestAppearance"),
            index + 1 < arguments.count {
@@ -23,16 +25,6 @@ struct UITestConfiguration: Sendable {
         } else {
             colorScheme = nil
         }
-
-        // Saturday 8 August 2026, 12:00 UTC — the month the user described.
-        var components = DateComponents()
-        components.year = 2026
-        components.month = 8
-        components.day = 8
-        components.hour = 12
-        var utc = Calendar(identifier: .gregorian)
-        utc.timeZone = TimeZone(secondsFromGMT: 0) ?? .gmt
-        referenceDate = isUITesting ? (utc.date(from: components) ?? .now) : .now
     }
 
     /// A calendar pinned to UTC under test so the grid's day boundaries do not
@@ -48,5 +40,12 @@ struct UITestConfiguration: Sendable {
         // so carry it over explicitly.
         calendar.firstWeekday = Calendar.autoupdatingCurrent.firstWeekday
         return calendar
+    }
+
+    /// Face ID cannot be answered by XCUITest on a CI simulator, so a real
+    /// prompt would hang the run forever.
+    var authenticator: BoardAuthenticating {
+        guard isUITesting else { return BiometricAuthenticator() }
+        return denyBiometrics ? AlwaysDenyAuthenticator() : AlwaysAllowAuthenticator()
     }
 }

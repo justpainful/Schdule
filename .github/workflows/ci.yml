@@ -65,12 +65,21 @@ jobs:
         include:
           - config: ar-dark
             method: testTourArabicDark
+            min_shots: 5
           - config: ar-light
             method: testTourArabicLight
+            min_shots: 5
           - config: en-dark
             method: testTourEnglishDark
+            min_shots: 5
           - config: en-light
             method: testTourEnglishLight
+            min_shots: 5
+          # The locked-board state needs biometrics refused rather than granted,
+          # so it cannot share a launch with the main tour.
+          - config: locked
+            method: testLockedBoardEnglishDark
+            min_shots: 1
     steps:
       - uses: actions/checkout@v5
 
@@ -122,7 +131,7 @@ jobs:
           find Screenshots -type f -name '*.png' | sort
           # A green job that produced no frames is worse than a red one: it
           # looks reviewed when nothing was reviewed.
-          test "$(find Screenshots -name '*.png' | wc -l)" -ge 4
+          test "$(find Screenshots -name '*.png' | wc -l)" -ge ${{ matrix.min_shots }}
 
       - name: Upload screenshots
         if: always()

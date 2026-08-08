@@ -8,8 +8,12 @@ import Foundation
 /// slide into the previous day. `20260808` means the eighth of August wherever
 /// you are. It also sorts, indexes, and groups by month (`value / 100`) without
 /// touching `Calendar` at all.
-public struct DayKey: Hashable, Codable, Sendable, Comparable, CustomStringConvertible {
+public struct DayKey: Hashable, Codable, Sendable, Comparable, Identifiable, CustomStringConvertible {
     public let value: Int
+
+    /// The encoded day is already a stable unique key, so it doubles as the id
+    /// for `sheet(item:)` and `ForEach`.
+    public var id: Int { value }
 
     public init(value: Int) {
         self.value = value
