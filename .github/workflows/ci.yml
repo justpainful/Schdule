@@ -177,3 +177,62 @@ jobs:
         with:
           name: tour-results
           path: Tour.xcresult
+
+  # An unsigned .ipa for sideloading (AltStore, Sideloadly, TrollStore).
+  #
+  # Unsigned rather than ad-hoc signed because this repository holds no
+  # certificate and no provisioning profile, and it should not: whoever installs
+  # it signs it with their own Apple ID at install time. That also means it
+  # cannot be installed by double-clicking — a sideloading tool has to re-sign
+  # it first.
+  ipa:
+    name: Unsigned IPA
+    runs-on: macos-26
+    timeout-minutes: 45
+    needs: unit-tests
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install tooling
+        run: brew install xcodegen
+
+      - name: Generate project
+        run: xcodegen generate
+
+      - name: Archive for device
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project Schdule.xcodeproj \
+            -scheme Schdule \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath build/Schdule.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGN_ENTITLEMENTS="" \
+            DEVELOPMENT_TEAM=""
+
+      - name: Package as .ipa
+        run: |
+          set -euo pipefail
+          APP="build/Schdule.xcarchive/Products/Applications/Schdule.app"
+          test -d "$APP" || { echo "No .app in the archive"; exit 1; }
+
+          # An .ipa is a zip with the bundle inside a folder named Payload, and
+          # nothing else is required for a sideloader to re-sign it.
+          rm -rf build/Payload && mkdir -p build/Payload
+          cp -R "$APP" build/Payload/
+          (cd build && zip -qry Schdule-unsigned.ipa Payload)
+
+          echo "--- contents ---"
+          unzip -l build/Schdule-unsigned.ipa | head -20
+          ls -lh build/Schdule-unsigned.ipa
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Schdule-unsigned-ipa
+          path: build/Schdule-unsigned.ipa
+          if-no-files-found: error
