@@ -22,6 +22,11 @@ struct BoardEditorView: View {
     @State private var weeklyTarget = 0
     @State private var folderID: UUID?
     @State private var isLocked = false
+    @State private var reminderEnabled = false
+    @State private var reminderTime = Calendar.current.date(
+        from: DateComponents(hour: 20, minute: 0)
+    ) ?? .now
+    @State private var reminderWeekdays: Set<Int> = []
     @State private var didLoad = false
 
     private var isCreating: Bool { board == nil }
@@ -36,6 +41,7 @@ struct BoardEditorView: View {
                 kindSection
                 unitSection
                 goalSection
+                reminderSection
                 Section(String(localized: "Colour")) { tintGrid }
                 Section(String(localized: "Symbol")) { symbolPicker }
                 placementSection
@@ -111,6 +117,60 @@ struct BoardEditorView: View {
                     : String(localized: "\(weeklyTarget) days per week"))
             }
         }
+    }
+
+    /// Per-board reminders. Scheduled locally, on this device, with no server
+    /// anywhere in the path.
+    @ViewBuilder
+    private var reminderSection: some View {
+        Section {
+            Toggle(isOn: $reminderEnabled) {
+                Label(String(localized: "Daily reminder"), systemImage: "bell")
+            }
+            if reminderEnabled {
+                DatePicker(
+                    String(localized: "Time"),
+                    selection: $reminderTime,
+                    displayedComponents: .hourAndMinute
+                )
+                weekdayPicker
+            }
+        } header: {
+            Text("Reminder")
+        } footer: {
+            if reminderEnabled {
+                Text(reminderWeekdays.isEmpty
+                    ? String(localized: "Every day.")
+                    : String(localized: "On the days you picked."))
+            }
+        }
+    }
+
+    private var weekdayPicker: some View {
+        let symbols = Calendar.autoupdatingCurrent.veryShortStandaloneWeekdaySymbols
+        let first = Calendar.autoupdatingCurrent.firstWeekday
+        let order = (0..<7).map { ((first - 1 + $0) % 7) + 1 }
+
+        return HStack(spacing: 6) {
+            ForEach(order, id: \.self) { weekday in
+                let selected = reminderWeekdays.contains(weekday)
+                Button {
+                    if selected { reminderWeekdays.remove(weekday) }
+                    else { reminderWeekdays.insert(weekday) }
+                } label: {
+                    Text(weekday - 1 < symbols.count ? symbols[weekday - 1] : "")
+                        .font(.caption.weight(.semibold))
+                        .frame(maxWidth: .infinity, minHeight: 32)
+                        .foregroundStyle(selected ? Color.white : Color.primary)
+                        .background {
+                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                .fill(selected ? tint.color : Color(.tertiarySystemFill))
+                        }
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.vertical, 2)
     }
 
     private var placementSection: some View {
@@ -292,6 +352,42 @@ struct BoardEditorView: View {
         target.folder = folders.first { $0.id == folderID }
 
         try? context.save()
+        scheduleReminder(for: target)
         dismiss()
+    }
+
+    private func scheduleReminder(for board: Board) {
+        let scheduler = ReminderScheduler()
+        let id = board.id
+        let name = board.name
+        let inverted = board.isInverted
+        let enabled = reminderEnabled
+        // A locked board never gets a reminder: a banner naming it on the Lock
+        // Screen would announce exactly what the lock exists to hide.
+        let allowed = enabled && !board.isLocked
+        let components = Calendar.autoupdatingCurrent.dateComponents(
+            [.hour, .minute], from: reminderTime
+        )
+        let weekdays = reminderWeekdays
+
+        Task {
+            guard allowed else {
+                await scheduler.cancelAll(boardID: id)
+                return
+            }
+            guard await scheduler.requestAuthorization() else { return }
+            scheduler.registerCategories()
+            try? await scheduler.schedule(
+                ReminderRequest(
+                    boardID: id,
+                    boardName: name,
+                    kind: .daily,
+                    hour: components.hour ?? 20,
+                    minute: components.minute ?? 0,
+                    weekdays: weekdays,
+                    isInverted: inverted
+                )
+            )
+        }
     }
 }

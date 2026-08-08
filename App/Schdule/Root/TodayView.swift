@@ -15,6 +15,7 @@ struct TodayView: View {
 
     @Environment(\.appModel) private var appModel
     @State private var editing: DayEditorTarget?
+    @State private var isShowingSettings = false
 
     var body: some View {
         NavigationStack {
@@ -27,8 +28,21 @@ struct TodayView: View {
             .navigationTitle(Text(dayTitle))
             .navigationBarTitleDisplayMode(.large)
             .accessibilityIdentifier("today-list")
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        isShowingSettings = true
+                    } label: {
+                        Label(String(localized: "Settings"), systemImage: "gearshape")
+                    }
+                    .accessibilityIdentifier("open-settings")
+                }
+            }
             .sheet(item: $editing) { target in
                 DayEditorSheet(board: target.board, day: target.day)
+            }
+            .sheet(isPresented: $isShowingSettings) {
+                SettingsView()
             }
         }
     }

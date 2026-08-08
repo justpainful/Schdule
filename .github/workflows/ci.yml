@@ -65,16 +65,16 @@ jobs:
         include:
           - config: ar-dark
             method: testTourArabicDark
-            min_shots: 5
+            min_shots: 6
           - config: ar-light
             method: testTourArabicLight
-            min_shots: 5
+            min_shots: 6
           - config: en-dark
             method: testTourEnglishDark
-            min_shots: 5
+            min_shots: 6
           - config: en-light
             method: testTourEnglishLight
-            min_shots: 5
+            min_shots: 6
           # The locked-board state needs biometrics refused rather than granted,
           # so it cannot share a launch with the main tour.
           - config: locked

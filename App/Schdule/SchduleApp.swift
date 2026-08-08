@@ -8,6 +8,7 @@ struct SchduleApp: App {
     private let testConfig = UITestConfiguration.current
     @State private var appModel: AppModel?
     @State private var launchFailure: String?
+    @AppStorage("appearance") private var appearance = AppearanceSetting.dark.rawValue
 
     var body: some Scene {
         WindowGroup {
@@ -22,10 +23,14 @@ struct SchduleApp: App {
                     ProgressView().task { start() }
                 }
             }
-            // Dark is the app's house style, not the system's choice. This
-            // becomes a three-way setting (Dark / Light / System) in M9; until
-            // then the default stands.
-            .preferredColorScheme(testConfig.colorScheme ?? .dark)
+            // Dark is the app's house style rather than the system's choice, so
+            // it is the default rather than a mirror of the system setting.
+            // Settings can override it; a UI test always wins.
+            .preferredColorScheme(
+                testConfig.colorScheme
+                    ?? AppearanceSetting(rawValue: appearance)?.colorScheme
+                    ?? .dark
+            )
             // Screenshots must not drift between CI runs, so under test the app
             // runs against a frozen calendar rather than the wall clock.
             .environment(\.calendar, testConfig.calendar)

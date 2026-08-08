@@ -37,12 +37,20 @@ final class ScreenshotTour: XCTestCase {
 
         // 2. The day editor, reached by tapping a row. This is where a forgotten
         //    Tuesday or an eleven-times day gets fixed.
-        let row = app.descendants(matching: .any)["today-row-TikTok"]
+        //
+        //    `.firstMatch` rather than a plain subscript: an accessibility
+        //    identifier set on a composite row propagates to its descendants, so
+        //    the query resolves to several elements and tapping the subscript
+        //    fails with "Multiple matching elements found".
+        let row = app.descendants(matching: .any)
+            .matching(identifier: "today-row-TikTok")
+            .firstMatch
         if row.waitForExistence(timeout: 10) {
             row.tap()
-            if app.buttons["day-editor-done"].waitForExistence(timeout: 10) {
+            let done = app.buttons["day-editor-done"].firstMatch
+            if done.waitForExistence(timeout: 10) {
                 capture(app, named: "\(prefix)-02-day-editor")
-                app.buttons["day-editor-done"].tap()
+                done.tap()
             }
         }
 
@@ -67,8 +75,24 @@ final class ScreenshotTour: XCTestCase {
 
         // 5. Insights.
         tapTab(app, index: 2)
-        if app.descendants(matching: .any)["insights"].waitForExistence(timeout: 15) {
+        let insights = app.descendants(matching: .any)
+            .matching(identifier: "insights")
+            .firstMatch
+        if insights.waitForExistence(timeout: 15) {
             capture(app, named: "\(prefix)-06-insights")
+        }
+
+        // 6. Settings, which is also where the privacy claims are made in words.
+        tapTab(app, index: 0)
+        let settings = app.buttons["open-settings"].firstMatch
+        if settings.waitForExistence(timeout: 10) {
+            settings.tap()
+            let form = app.descendants(matching: .any)
+                .matching(identifier: "settings")
+                .firstMatch
+            if form.waitForExistence(timeout: 10) {
+                capture(app, named: "\(prefix)-07-settings")
+            }
         }
     }
 
@@ -86,8 +110,11 @@ final class ScreenshotTour: XCTestCase {
         ).firstMatch
         if locked.waitForExistence(timeout: 10) {
             locked.tap()
-            if app.descendants(matching: .any)["locked-state"].waitForExistence(timeout: 10) {
-                capture(app, named: "en-dark-07-locked-board")
+            let state = app.descendants(matching: .any)
+                .matching(identifier: "locked-state")
+                .firstMatch
+            if state.waitForExistence(timeout: 10) {
+                capture(app, named: "en-dark-08-locked-board")
             }
         }
     }
