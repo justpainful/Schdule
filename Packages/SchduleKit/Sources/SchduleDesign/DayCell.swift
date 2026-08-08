@@ -65,9 +65,11 @@ public struct DayCell: View {
             return AnyShapeStyle(tint.color.opacity(intensity.fillOpacity))
         }
         // Past and empty is a fact worth showing; future and empty is not yet a
-        // fact at all.
+        // fact at all — but it still has to hold the shape of the month. Drawing
+        // future days as nothing at all made the second half of an August look
+        // like a rendering failure rather than like days that have not happened.
         return isFuture
-            ? AnyShapeStyle(Color.clear)
+            ? AnyShapeStyle(Color(.quaternarySystemFill).opacity(0.45))
             : AnyShapeStyle(Color(.quaternarySystemFill))
     }
 
@@ -81,7 +83,8 @@ public struct DayCell: View {
                 Text(day, format: .number)
                     .font(.system(size: 13, weight: .regular, design: .rounded))
                     .monospacedDigit()
-                    .foregroundStyle(isFuture ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.tertiary))
+                    .foregroundStyle(isFuture ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.secondary))
+                    .opacity(isFuture ? 0.7 : 1)
             }
         case .once:
             Image(systemName: isInverted ? "xmark" : "checkmark")

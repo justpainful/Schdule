@@ -31,6 +31,12 @@ struct BoardDetailView: View {
         }
         .navigationTitle(Text(board.name))
         .navigationBarTitleDisplayMode(.large)
+        // The month pager is itself a floating glass bar. Stacking it directly
+        // above the floating tab bar put two glass pills within a few points of
+        // each other, which reads as a mistake. A pushed detail screen hiding
+        // the tab bar is ordinary iOS, and it leaves exactly one floating
+        // element on screen.
+        .toolbar(.hidden, for: .tabBar)
         .toolbar {
             if isUnlocked {
                 ToolbarItem(placement: .primaryAction) {

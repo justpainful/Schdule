@@ -161,7 +161,7 @@ jobs:
           find Screenshots -type f -name '*.png' | sort
           # A green job that produced no frames is worse than a red one: it
           # looks reviewed when nothing was reviewed.
-          test "$(find Screenshots -name '*.png' | wc -l)" -ge 20
+          test "$(find Screenshots -name '*.png' | wc -l)" -ge 24
 
       - name: Upload screenshots
         if: always()

@@ -73,6 +73,10 @@ final class ScreenshotTour: XCTestCase {
             }
         }
 
+        // The detail screen hides the tab bar, so the tour has to come back out
+        // of it before it can switch tabs at all.
+        goBack(app)
+
         // 5. Insights.
         tapTab(app, index: 2)
         let insights = app.descendants(matching: .any)
@@ -141,11 +145,32 @@ final class ScreenshotTour: XCTestCase {
 
     /// Tab bars mirror under RTL, so tabs are picked by position in the
     /// accessibility tree rather than by screen coordinates or localized title.
+    ///
+    /// The swipe down is not cosmetic: `.tabBarMinimizeBehavior(.onScrollDown)`
+    /// shrinks the bar away once the page has been scrolled, and a minimized bar
+    /// has no tappable buttons. Every frame after a scroll went missing until
+    /// this brought it back.
     private func tapTab(_ app: XCUIApplication, index: Int) {
+        app.swipeDown()
+        Thread.sleep(forTimeInterval: 0.6)
+
         let bar = app.tabBars.firstMatch
         guard bar.waitForExistence(timeout: 15) else { return }
         let button = bar.buttons.element(boundBy: index)
-        if button.exists { button.tap() }
+        guard button.waitForExistence(timeout: 5), button.isHittable else { return }
+        button.tap()
+        Thread.sleep(forTimeInterval: 0.6)
+    }
+
+    /// Pops one level. The back button has no stable identifier and its label is
+    /// localized, so it is taken by position in the navigation bar.
+    private func goBack(_ app: XCUIApplication) {
+        let bar = app.navigationBars.firstMatch
+        guard bar.waitForExistence(timeout: 10) else { return }
+        let back = bar.buttons.element(boundBy: 0)
+        guard back.exists, back.isHittable else { return }
+        back.tap()
+        Thread.sleep(forTimeInterval: 0.8)
     }
 
     private func capture(_ app: XCUIApplication, named name: String) {

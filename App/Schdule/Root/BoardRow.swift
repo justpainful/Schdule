@@ -51,9 +51,17 @@ struct BoardRow: View {
 
     private var counter: some View {
         HStack(spacing: 10) {
-            if count > 0, let onDecrement {
-                stepButton(systemName: "minus", action: onDecrement)
-                    .accessibilityLabel(Text("Remove one"))
+            // The minus keeps its slot at zero rather than disappearing. Letting
+            // it vanish shifted the number sideways, so a column of rows no
+            // longer lined up and the counts were harder to scan than they
+            // should be.
+            Group {
+                if count > 0, let onDecrement {
+                    stepButton(systemName: "minus", action: onDecrement)
+                        .accessibilityLabel(Text("Remove one"))
+                } else {
+                    Color.clear.frame(width: 30, height: 30)
+                }
             }
 
             Text(count, format: .number)

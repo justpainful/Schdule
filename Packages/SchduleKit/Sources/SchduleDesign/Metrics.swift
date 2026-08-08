@@ -12,7 +12,7 @@ public enum Metrics {
     /// an overlay rather than a safe-area inset on purpose — it needs content
     /// passing beneath it to have anything to sample — so the space it occupies
     /// has to be reserved by hand.
-    public static let floatingBarClearance: CGFloat = 180
+    public static let floatingBarClearance: CGFloat = 210
 }
 
 /// Formats dates in a specific calendar rather than whichever one the locale
