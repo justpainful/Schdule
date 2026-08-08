@@ -11,6 +11,7 @@ let package = Package(
         .library(name: "SchduleStore", targets: ["SchduleStore"]),
         .library(name: "SchduleDesign", targets: ["SchduleDesign"]),
         .library(name: "SchduleExport", targets: ["SchduleExport"]),
+        .library(name: "SchduleIntents", targets: ["SchduleIntents"]),
     ],
     targets: [
         // Value types and calendar arithmetic. No frameworks, no I/O.
@@ -43,6 +44,14 @@ let package = Package(
         .target(
             name: "SchduleExport",
             dependencies: ["SchduleModel", "SchduleDesign"],
+            swiftSettings: [.swiftLanguageMode(.v6)]
+        ),
+        // App Intents plus the flattened reads the widget timelines need.
+        // Linked by the app and the widget extension both, so the one-tap
+        // surfaces cannot drift apart.
+        .target(
+            name: "SchduleIntents",
+            dependencies: ["SchduleModel", "SchduleStore", "SchduleStats", "SchduleDesign"],
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
         // Tests deliberately live in the Xcode project (Tests/SchduleKitTests)
