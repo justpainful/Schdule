@@ -60,14 +60,3 @@ struct QuickLogControlProvider: AppIntentControlValueProvider {
     }
 }
 
-extension BoardEntity {
-    /// Stand-in for the control gallery, before a board has been chosen.
-    static var placeholder: BoardEntity {
-        BoardEntity(
-            id: UUID(),
-            name: String(localized: "Board"),
-            symbolName: "square.grid.3x3",
-            isInverted: false
-        )
-    }
-}

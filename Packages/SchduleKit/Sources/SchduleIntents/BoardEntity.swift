@@ -31,6 +31,21 @@ public struct BoardEntity: AppEntity, Identifiable, Sendable {
     }
 
     public static let defaultQuery = BoardEntityQuery()
+
+    /// Stand-in for the control gallery, before a board has been chosen.
+    ///
+    /// Lives here rather than in an extension inside the widget target: the
+    /// AppIntents metadata processor treats a module that extends an entity as a
+    /// module that declares it, and then rejects the build for declaring an
+    /// entity its dependency already declares.
+    public static var placeholder: BoardEntity {
+        BoardEntity(
+            id: UUID(),
+            name: String(localized: "Board"),
+            symbolName: "square.grid.3x3",
+            isInverted: false
+        )
+    }
 }
 
 public struct BoardEntityQuery: EntityQuery, EntityStringQuery {
