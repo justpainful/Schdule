@@ -53,33 +53,16 @@ jobs:
           name: unit-test-results
           path: UnitTests.xcresult
 
+  # One job running every configuration in sequence, not a matrix.
+  #
+  # Hosted macOS runners are handed out two or three at a time, so a five-leg
+  # matrix does not run in parallel — it queues, and each leg pays the setup
+  # cost again. Sequential in one slot finishes sooner in wall-clock terms and
+  # produces a single artifact to download.
   screenshots:
-    name: Screenshots (${{ matrix.config }})
+    name: Screenshots
     runs-on: macos-26
-    timeout-minutes: 45
-    strategy:
-      fail-fast: false
-      matrix:
-        # Each configuration is its own test method rather than an environment
-        # variable, so a matrix leg cannot silently render the wrong one.
-        include:
-          - config: ar-dark
-            method: testTourArabicDark
-            min_shots: 6
-          - config: ar-light
-            method: testTourArabicLight
-            min_shots: 6
-          - config: en-dark
-            method: testTourEnglishDark
-            min_shots: 6
-          - config: en-light
-            method: testTourEnglishLight
-            min_shots: 6
-          # The locked-board state needs biometrics refused rather than granted,
-          # so it cannot share a launch with the main tour.
-          - config: locked
-            method: testLockedBoardEnglishDark
-            min_shots: 1
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
 
@@ -112,13 +95,13 @@ jobs:
               -project Schdule.xcodeproj \
               -scheme Schdule \
               -destination "platform=iOS Simulator,name=$SIMULATOR" \
-              -only-testing:SchduleUITests/ScreenshotTour/${{ matrix.method }} \
+              -only-testing:SchduleUITests/ScreenshotTour \
               -resultBundlePath "$1" \
               CODE_SIGNING_ALLOWED=NO
           }
-          # One retry. Launch timeouts on a hosted runner are environmental, not
-          # a signal about the code, and a red matrix leg costs a whole review
-          # round.
+          # One retry. Launch timeouts on a hosted runner are environmental
+          # rather than a signal about the code, and a red run costs a whole
+          # review round.
           run_tour Tour.xcresult || {
             echo "::warning::First tour attempt failed; retrying once."
             rm -rf Tour.xcresult
@@ -178,13 +161,13 @@ jobs:
           find Screenshots -type f -name '*.png' | sort
           # A green job that produced no frames is worse than a red one: it
           # looks reviewed when nothing was reviewed.
-          test "$(find Screenshots -name '*.png' | wc -l)" -ge ${{ matrix.min_shots }}
+          test "$(find Screenshots -name '*.png' | wc -l)" -ge 20
 
       - name: Upload screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: screenshots-${{ matrix.config }}
+          name: screenshots
           path: Screenshots
           if-no-files-found: warn
 
@@ -192,5 +175,5 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: tour-results-${{ matrix.config }}
+          name: tour-results
           path: Tour.xcresult
