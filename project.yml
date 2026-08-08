@@ -30,15 +30,7 @@ targets:
       - path: App/Schdule
     dependencies:
       - package: SchduleKit
-        product: SchduleDesign
-      - package: SchduleKit
-        product: SchduleStore
-      - package: SchduleKit
-        product: SchduleStats
-      - package: SchduleKit
-        product: SchduleExport
-      - package: SchduleKit
-        product: SchduleIntents
+        product: SchduleKit
       - target: SchduleWidgets
         embed: true
     settings:
@@ -82,9 +74,7 @@ targets:
           - "*.entitlements"
     dependencies:
       - package: SchduleKit
-        product: SchduleDesign
-      - package: SchduleKit
-        product: SchduleIntents
+        product: SchduleKit
       - sdk: WidgetKit.framework
       - sdk: SwiftUI.framework
     settings:
@@ -111,15 +101,7 @@ targets:
       - path: Tests/SchduleKitTests
     dependencies:
       - package: SchduleKit
-        product: SchduleModel
-      - package: SchduleKit
-        product: SchduleDesign
-      - package: SchduleKit
-        product: SchduleStats
-      - package: SchduleKit
-        product: SchduleStore
-      - package: SchduleKit
-        product: SchduleExport
+        product: SchduleKit
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.justpainful.schdule.kittests

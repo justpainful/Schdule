@@ -6,12 +6,31 @@ let package = Package(
     defaultLocalization: "en",
     platforms: [.iOS(.v26)],
     products: [
-        .library(name: "SchduleModel", targets: ["SchduleModel"]),
-        .library(name: "SchduleStats", targets: ["SchduleStats"]),
-        .library(name: "SchduleStore", targets: ["SchduleStore"]),
-        .library(name: "SchduleDesign", targets: ["SchduleDesign"]),
-        .library(name: "SchduleExport", targets: ["SchduleExport"]),
-        .library(name: "SchduleIntents", targets: ["SchduleIntents"]),
+        // One dynamic product carrying every module.
+        //
+        // Two reasons it is dynamic and singular rather than six static ones.
+        // The AppIntents metadata processor refuses to build when an app and an
+        // embedded extension both statically link a library declaring the same
+        // App Entity ("App Entities names from dependencies must not conflict
+        // with entities in the module being built"). And linking the SwiftData
+        // model types statically into both binaries would put two copies of the
+        // same @Model classes in one process, which is a far worse problem than
+        // the one it would be solving.
+        //
+        // The modules still exist separately; callers keep importing
+        // SchduleModel, SchduleStore, and so on.
+        .library(
+            name: "SchduleKit",
+            type: .dynamic,
+            targets: [
+                "SchduleModel",
+                "SchduleStats",
+                "SchduleStore",
+                "SchduleDesign",
+                "SchduleExport",
+                "SchduleIntents",
+            ]
+        ),
     ],
     targets: [
         // Value types and calendar arithmetic. No frameworks, no I/O.
@@ -19,7 +38,7 @@ let package = Package(
             name: "SchduleModel",
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
-        // Pure functions over day→count maps. Deliberately independent of the
+        // Pure functions over day-to-count maps. Deliberately independent of the
         // store so the fiddly parts can be tested without a container.
         .target(
             name: "SchduleStats",
@@ -47,8 +66,6 @@ let package = Package(
             swiftSettings: [.swiftLanguageMode(.v6)]
         ),
         // App Intents plus the flattened reads the widget timelines need.
-        // Linked by the app and the widget extension both, so the one-tap
-        // surfaces cannot drift apart.
         .target(
             name: "SchduleIntents",
             dependencies: ["SchduleModel", "SchduleStore", "SchduleStats", "SchduleDesign"],
