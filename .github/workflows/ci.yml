@@ -83,8 +83,11 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # Only XcodeGen, which is a prebuilt bottle. Screenshot extraction used to
+      # pull in a third-party tap that took roughly ten minutes to install on
+      # every matrix leg — longer than the tour it was supporting.
       - name: Install tooling
-        run: brew install xcodegen chargepoint/xcparse/xcparse
+        run: brew install xcodegen
 
       - name: Generate project
         run: xcodegen generate
@@ -125,8 +128,52 @@ jobs:
       - name: Extract screenshots from result bundle
         if: always()
         run: |
-          mkdir -p Screenshots
-          xcparse screenshots --test Tour.xcresult Screenshots || true
+          mkdir -p Raw Screenshots
+          # xcresulttool ships with Xcode, so this needs no install at all. It
+          # writes opaque filenames plus a manifest naming each one.
+          xcrun xcresulttool export attachments \
+            --path Tour.xcresult \
+            --output-path Raw || true
+          python3 - <<'PY'
+          import json, pathlib, shutil
+
+          raw = pathlib.Path("Raw")
+          out = pathlib.Path("Screenshots")
+          manifest = raw / "manifest.json"
+
+          def entries(blob):
+              """The manifest has changed shape between Xcode versions, so walk
+              whatever nesting it arrives in rather than assuming one."""
+              if isinstance(blob, dict):
+                  for key in ("attachments", "tests"):
+                      if key in blob:
+                          yield from entries(blob[key])
+                          return
+                  if "exportedFileName" in blob:
+                      yield blob
+              elif isinstance(blob, list):
+                  for item in blob:
+                      yield from entries(item)
+
+          copied = 0
+          if manifest.exists():
+              for item in entries(json.loads(manifest.read_text())):
+                  src = raw / item["exportedFileName"]
+                  if not src.exists():
+                      continue
+                  name = item.get("suggestedHumanReadableName") or src.stem
+                  if not name.lower().endswith(".png"):
+                      name += ".png"
+                  shutil.copyfile(src, out / name)
+                  copied += 1
+
+          # Fall back to whatever PNGs are there if the manifest was unusable.
+          if copied == 0:
+              for src in raw.rglob("*.png"):
+                  shutil.copyfile(src, out / src.name)
+                  copied += 1
+          print(f"copied {copied} screenshots")
+          PY
           echo "--- extracted ---"
           find Screenshots -type f -name '*.png' | sort
           # A green job that produced no frames is worse than a red one: it
